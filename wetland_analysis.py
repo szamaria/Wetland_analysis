@@ -26,7 +26,7 @@ arcpy.env.workspace = r"INSERT PATH TO WORKSPACE HERE"
 arcpy.CheckOutExtension("Spatial")
 
 #Read project subbasin boundary
-subs = r"C:/Users/sophi/OneDrive/Documents/School/PhD/Thesis/Chapter 3/Wetlands/Wetland_analysis/GIS data/BCWS/subs1.shp"
+subs = r"INSERT PATH TO SUBBASIN BOUNDARY FILE HERE"
 
 #Set extent of project
 arcpy.env.extent = subs
