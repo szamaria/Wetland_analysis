@@ -1,3 +1,14 @@
+"""
+This code determines the WET_FR SWAT parameter value for disconnected wetlands using watershed analysis through arcpy. It should be run after wetland classes are determined in wetland_analysis.py.
+For each disconnected wetland class, the ArcGIS Flow Direction tool is run to determine drainage paths over study area. Then, the ArcGIS watershed tool is used to define drainage areas around each disconnected wetland.
+Finally, WET_FR for each subbasin is determined by calculating the proportion of the total subbasin area that drains into disconnected wetlands. Subbasin WET_FR areas are output as an excel spreadsheet. WET_FR values can then be assigned per subbasin using the .pnd input files in SWAT.
+
+The code requires:
+1. A project DEM raster (DEM)
+2. SWAT subbasin boundary file (subs) INCLUDING subbasin area data
+3. Disconnected wetland rasters defined in wetland_analysis.py
+"""
+
 #Import libraries
 import pandas as pd
 import arcpy
@@ -7,19 +18,19 @@ from arcpy.sa import *
 arcpy.env.overwriteOutput = True
 
 #Set workspace
-arcpy.env.workspace = r"C:/Users/sophi/OneDrive/Documents/School/PhD/Thesis/Chapter 3/Wetlands/Wetland_analysis/Wetland_analysis.gdb/"
+arcpy.env.workspace = r"INSERT WORKSPACE PATH HERE"
 
 #Enable Spatial Analyst 
 arcpy.CheckOutExtension("Spatial")
 
-#Read project boundary file and DEM
-subs = r"C:/Users/sophi/OneDrive/Documents/School/PhD/Thesis/Chapter 3/Wetlands/Wetland_analysis/GIS data/BCWS/subs1.shp"
-DEM = r"C:/Users/sophi/OneDrive/Documents/School/PhD/Thesis/Chapter 3/Wetlands/Wetland_analysis/Wetland_analysis.gdb/DEM_utm"
+#Read project subbasin boundary file and DEM
+subs = r"INSERT PATH TO SUBBASIN BOUNDARY FILE HERE"
+DEM = r"INSERT PATH TO DEM RASTER HERE"
 
 #Set extent of project
 arcpy.env.extent = subs
 
-#List input extracted wetland class tifs
+#List input extracted disconnected wetland class tifs (created in wetland_analysis.py)
 input_disconnected_rasters = arcpy.ListRasters("disconnected_*")
 print(f"Found {len(input_disconnected_rasters)} disconnected rasters:")
 for r in input_disconnected_rasters:
@@ -39,13 +50,13 @@ for raster in input_disconnected_rasters:
 
     try:
         if arcpy.Exists(raster):
-            print(f"  ✓ Raster {raster} exists")
+            print(f"  Raster {raster} exists")
 
             print(f"  Running watershed analysis...")
             watershed_area = Watershed(Flow_Direction,raster)
             output_name = f"watershed_{raster}"
             watershed_area.save(output_name)
-            print(f"  ✓ Saved watershed: {output_name}")
+            print(f"  Saved watershed: {output_name}")
 
 
             #6. Run zonal statistics as table to compute the total area of classified wetlands per subbasin
@@ -55,7 +66,7 @@ for raster in input_disconnected_rasters:
             print(f" completed zonal stats for {output_table}")
 
             if arcpy.Exists(output_table):
-                print(f"  ✓ Zonal stats table created successfully")
+                print(f"  Zonal stats table created successfully")
 
             #7. Convert output table to pandas DataFrame for easier data analysis
                 print(f"  Converting table to DataFrame...")
@@ -80,12 +91,12 @@ for raster in input_disconnected_rasters:
                     'area_km2': area_km2
                 })
                
-            print(f"  ✓ Added {len(df)} entries to drainage_area_list")
+            print(f"  Added {len(df)} entries to drainage_area_list")
         else:
-            print(f"  ✗ Zonal stats table was not created")
+            print(f"  Zonal stats table was not created")
                     
     except Exception as e:
-        print(f"  ✗ ERROR processing {raster}: {str(e)}")
+        print(f"  ERROR processing {raster}: {str(e)}")
         import traceback
         traceback.print_exc()  # This shows the full error details
 else:
@@ -109,11 +120,6 @@ averaged_by_subbasin = drainage_df.groupby(['wetland_type', 'Subbasin'])['area_k
 print(f"\nRows in averaged_by_subbasin: {len(averaged_by_subbasin)}")
 print("Wetland type counts in grouped data:")
 print(averaged_by_subbasin['wetland_type'].value_counts())
-
-# Check a sample of the grouped data
-print("\nSample of averaged_by_subbasin:")
-print(averaged_by_subbasin.head(10))
-
 
 #Convert subs into a pandas df.
 fields = ['Subbasin', 'Area']
@@ -144,6 +150,3 @@ print(merged_df[['wetland_type', 'Subbasin', 'Area', 'WET_FR']])
 #Save as excel spreadsheet
 merged_df.to_excel('WET_FR.xlsx', index=False)
 
-# average_wetland_df = average_drainage_df.pivot(index='subbasin', columns = 'raster_type', values = 'area_km2') #Pivot dataframe so it's indexed by subbasin
-# average_wetland_df = average_drainage_df.reset_index() #Resets the index to include subbasin column
-# """
